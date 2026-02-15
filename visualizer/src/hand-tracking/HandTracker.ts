@@ -48,11 +48,14 @@ export function createHandTracker(
 	): HandPose | null {
 		const joints = new Map<XRHandJoint, JointData>();
 
+		const getJointPose = frame.getJointPose?.bind(frame);
+		if (!getJointPose) return null;
+
 		for (const jointName of ALL_JOINTS) {
 			const jointSpace = hand.get(jointName);
 			if (!jointSpace) continue;
 
-			const jointPose = frame.getJointPose(jointSpace, referenceSpace);
+			const jointPose = getJointPose(jointSpace, referenceSpace);
 			if (!jointPose) continue;
 
 			joints.set(jointName, {

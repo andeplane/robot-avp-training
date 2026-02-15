@@ -2,18 +2,20 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createHandTracker, type HandTrackerDependencies } from "./HandTracker";
 
 describe(createHandTracker.name, () => {
+	let mockGetJointPose: ReturnType<typeof vi.fn>;
 	let mockFrame: XRFrame;
 	let mockReferenceSpace: XRReferenceSpace;
 
 	beforeEach(() => {
+		mockGetJointPose = vi.fn();
 		mockReferenceSpace = {} as XRReferenceSpace;
 		mockFrame = {
 			session: { inputSources: [] },
-			getJointPose: vi.fn(),
+			getJointPose: mockGetJointPose,
 		} as unknown as XRFrame;
 	});
 
-	function createMockHand(joints: Record<string, unknown>): XRHand {
+	function createMockHand(joints: Record<string, object>): XRHand {
 		const map = new Map(Object.entries(joints));
 		return {
 			get: (name: string) => map.get(name),
@@ -32,12 +34,10 @@ describe(createHandTracker.name, () => {
 				position: { x, y, z, w: 1 },
 				orientation: { x: 0, y: 0, z: 0, w: 1 },
 				matrix: new Float32Array(16),
-				inverse: { matrix: new Float32Array(16) } as DOMPointReadOnly,
+				inverse: {} as unknown as DOMPointReadOnly,
 			},
 			radius,
 			emulatedPosition: false,
-			angularVelocity: undefined,
-			linearVelocity: undefined,
 		} as unknown as XRJointPose;
 	}
 
@@ -57,11 +57,12 @@ describe(createHandTracker.name, () => {
 	});
 
 	it("should track a left hand with joint data", () => {
-		const hand = createMockHand({ wrist: "wrist-space" });
+		const wristSpace = {};
+		const hand = createMockHand({ wrist: wristSpace });
 		const inputSources = [createMockInputSource("left", hand)];
 		const deps = createDeps(inputSources);
 
-		vi.mocked(mockFrame.getJointPose).mockReturnValue(createMockJointPose(0.1, 0.2, 0.3));
+		mockGetJointPose.mockReturnValue(createMockJointPose(0.1, 0.2, 0.3));
 
 		const tracker = createHandTracker(deps);
 		const result = tracker.update(mockFrame, mockReferenceSpace);
@@ -73,15 +74,15 @@ describe(createHandTracker.name, () => {
 	});
 
 	it("should track both hands simultaneously", () => {
-		const leftHand = createMockHand({ wrist: "wrist-space-l" });
-		const rightHand = createMockHand({ wrist: "wrist-space-r" });
+		const leftHand = createMockHand({ wrist: {} });
+		const rightHand = createMockHand({ wrist: {} });
 		const inputSources = [
 			createMockInputSource("left", leftHand),
 			createMockInputSource("right", rightHand),
 		];
 		const deps = createDeps(inputSources);
 
-		vi.mocked(mockFrame.getJointPose).mockReturnValue(createMockJointPose(0, 1, 0));
+		mockGetJointPose.mockReturnValue(createMockJointPose(0, 1, 0));
 
 		const tracker = createHandTracker(deps);
 		const result = tracker.update(mockFrame, mockReferenceSpace);
@@ -91,16 +92,19 @@ describe(createHandTracker.name, () => {
 	});
 
 	it("should detect pinch when thumb and index tips are close", () => {
+		const thumbTipSpace = { id: "thumb-tip" };
+		const indexTipSpace = { id: "index-finger-tip" };
+		const wristSpace = { id: "wrist" };
 		const hand = createMockHand({
-			wrist: "ws",
-			"thumb-tip": "tt",
-			"index-finger-tip": "ift",
+			wrist: wristSpace,
+			"thumb-tip": thumbTipSpace,
+			"index-finger-tip": indexTipSpace,
 		});
 		const deps = createDeps([createMockInputSource("right", hand)]);
 
-		vi.mocked(mockFrame.getJointPose).mockImplementation((space: XRSpace) => {
-			if (space === "tt") return createMockJointPose(0, 0, 0);
-			if (space === "ift") return createMockJointPose(0.01, 0, 0);
+		mockGetJointPose.mockImplementation((space: unknown) => {
+			if (space === thumbTipSpace) return createMockJointPose(0, 0, 0);
+			if (space === indexTipSpace) return createMockJointPose(0.01, 0, 0);
 			return createMockJointPose(0, 0, 0);
 		});
 
@@ -111,16 +115,19 @@ describe(createHandTracker.name, () => {
 	});
 
 	it("should not detect pinch when thumb and index tips are far", () => {
+		const thumbTipSpace = { id: "thumb-tip" };
+		const indexTipSpace = { id: "index-finger-tip" };
+		const wristSpace = { id: "wrist" };
 		const hand = createMockHand({
-			wrist: "ws",
-			"thumb-tip": "tt",
-			"index-finger-tip": "ift",
+			wrist: wristSpace,
+			"thumb-tip": thumbTipSpace,
+			"index-finger-tip": indexTipSpace,
 		});
 		const deps = createDeps([createMockInputSource("left", hand)]);
 
-		vi.mocked(mockFrame.getJointPose).mockImplementation((space: XRSpace) => {
-			if (space === "tt") return createMockJointPose(0, 0, 0);
-			if (space === "ift") return createMockJointPose(0.1, 0, 0);
+		mockGetJointPose.mockImplementation((space: unknown) => {
+			if (space === thumbTipSpace) return createMockJointPose(0, 0, 0);
+			if (space === indexTipSpace) return createMockJointPose(0.1, 0, 0);
 			return createMockJointPose(0, 0, 0);
 		});
 
@@ -131,10 +138,10 @@ describe(createHandTracker.name, () => {
 	});
 
 	it("should return null for hand when no joint poses are available", () => {
-		const hand = createMockHand({ wrist: "ws" });
+		const hand = createMockHand({ wrist: {} });
 		const deps = createDeps([createMockInputSource("left", hand)]);
 
-		vi.mocked(mockFrame.getJointPose).mockReturnValue(null as unknown as XRJointPose);
+		mockGetJointPose.mockReturnValue(null);
 
 		const tracker = createHandTracker(deps);
 		const result = tracker.update(mockFrame, mockReferenceSpace);
@@ -143,9 +150,9 @@ describe(createHandTracker.name, () => {
 	});
 
 	it("should persist latest poses via getLatestPoses()", () => {
-		const hand = createMockHand({ wrist: "ws" });
+		const hand = createMockHand({ wrist: {} });
 		const deps = createDeps([createMockInputSource("right", hand)]);
-		vi.mocked(mockFrame.getJointPose).mockReturnValue(createMockJointPose(0, 0, 0));
+		mockGetJointPose.mockReturnValue(createMockJointPose(0, 0, 0));
 
 		const tracker = createHandTracker(deps);
 		tracker.update(mockFrame, mockReferenceSpace);
@@ -155,9 +162,9 @@ describe(createHandTracker.name, () => {
 	});
 
 	it("should ignore input sources with handedness 'none'", () => {
-		const hand = createMockHand({ wrist: "ws" });
+		const hand = createMockHand({ wrist: {} });
 		const deps = createDeps([createMockInputSource("none", hand)]);
-		vi.mocked(mockFrame.getJointPose).mockReturnValue(createMockJointPose(0, 0, 0));
+		mockGetJointPose.mockReturnValue(createMockJointPose(0, 0, 0));
 
 		const tracker = createHandTracker(deps);
 		const result = tracker.update(mockFrame, mockReferenceSpace);
