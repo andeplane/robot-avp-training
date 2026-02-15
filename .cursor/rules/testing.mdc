@@ -1,0 +1,246 @@
+---
+alwaysApply: true
+---
+
+# Testing Standards
+
+## Test File Naming
+- Unit tests must be named `<something>.spec.ts(x)`
+- Use vitest for all unit tests
+- Prefer `test.each` (parameterized tests) over many individual test cases
+
+## Running Tests
+- Use `npm run test` for watch mode
+- Use `npm run test:run` to run once
+- Always run tests after making changes
+
+---
+
+## Test Structure
+
+### Arrange/Act/Assert Pattern
+Use explicit Arrange-Act-Assert comments for tests with more than ~10-15 statements:
+
+```typescript
+it('should not update physics when paused', () => {
+  // Arrange
+  const manager = new SimulationManager(mockPhysics);
+  manager.pause();
+
+  // Act
+  manager.step(1 / 60);
+
+  // Assert
+  expect(mockPhysics.step).not.toHaveBeenCalled();
+});
+```
+
+### Keep Tests Focused
+- Cover all functionality but keep tests focused on one behavior
+- Extract utility functions to set up test data
+- Place helper functions at the bottom of test files
+
+---
+
+## Mocking Strategy
+
+### Prefer Dependency Injection Over vi.mock
+Injecting dependencies makes tests less brittle and more focused. Only use `vi.mock` when absolutely necessary, and always add a comment explaining why.
+
+```typescript
+// Preferred: Dependency injection
+describe(startSession.name, () => {
+  it('should call the service', async () => {
+    const mockService = { execute: vi.fn() };
+
+    await startSession(props, {
+      serviceFactory: () => mockService,
+    });
+
+    expect(mockService.execute).toHaveBeenCalled();
+  });
+});
+
+// When necessary: Type-safe vi.mock (add a comment explaining why)
+// Note: Mocking WASM module because it requires async init
+vi.mock(import('../physics/rapier-init'), () => ({
+  initRapier: vi.fn(),
+}));
+
+// Type-safe partial mocking
+vi.mock(import('../utils/validation'), async (importOriginal) => {
+  const actual = await importOriginal();
+  return {
+    ...actual,
+    validateConfig: vi.fn(),
+  };
+});
+```
+
+### Type-Safe Mock Creation
+**All mocking must be type-safe.** Prefer `vi.fn(() => ...)` pattern where possible.
+
+**Preferred: `vi.fn(() => ...)`** -- when mock behavior is consistent across tests:
+
+```typescript
+beforeEach(() => {
+  mockPhysics = {
+    step: vi.fn(),
+    getArmStates: vi.fn(() => [defaultArmState]),
+  };
+});
+```
+
+**Alternative: `vi.fn()` + `vi.mocked()`** -- when you need to reconfigure per test:
+
+```typescript
+beforeEach(() => {
+  mockPhysics = {
+    step: vi.fn(),
+    getArmStates: vi.fn(),
+  };
+  vi.mocked(mockPhysics.getArmStates).mockReturnValue([defaultArmState]);
+});
+
+it('should handle empty arm state', () => {
+  // Reconfigure mock for this specific test
+  vi.mocked(mockPhysics.getArmStates).mockReturnValue([]);
+  // ...
+});
+```
+
+### Interface-Based Mocks
+When implementing full interfaces, use `assert.fail` for unused methods:
+
+```typescript
+beforeEach(() => {
+  mockStorage = {
+    list: vi.fn(),
+    retrieve: vi.fn(() => { assert.fail('Not implemented'); }),
+    upsert: vi.fn(() => { assert.fail('Not implemented'); }),
+    delete: vi.fn(() => { assert.fail('Not implemented'); }),
+  };
+});
+```
+
+**Better:** Prefer narrow interfaces that only include methods the unit under test needs.
+
+---
+
+## Type Safety in Tests
+
+### Use `Partial<T>` Over `as unknown as T`
+Maintain type safety while only mocking needed properties:
+
+```typescript
+// Good: Type-safe partial mocking
+function createMockConfig(overrides: Partial<SimConfig> = {}): SimConfig {
+  const defaults: Partial<SimConfig> = {
+    gravity: -9.81,
+    timestep: 1 / 60,
+  };
+  return { ...defaults, ...overrides } as SimConfig;
+}
+
+// Avoid: Completely unsafe casting
+const badMock = {} as unknown as SimConfig;
+```
+
+### Type-Safe Return Value Assertions
+Use explicit type annotations when verifying complex return types:
+
+```typescript
+it('should return correctly typed result', () => {
+  const result = buildArmConfig(params);
+
+  expect(result).toEqual<typeof result>({
+    joints: expectedJoints,
+    linkLengths: [0.3, 0.25, 0.2],
+  });
+});
+```
+
+### Never Use `any`
+- Prefer `unknown` or strong types
+- Use `Partial<T>` and `as T` to mock only needed fields
+
+### Direct React Type Imports (when using React)
+Use direct imports instead of the React namespace:
+
+```typescript
+// Good: Direct type imports
+import type { ComponentType, ReactNode } from 'react';
+
+// Avoid: Global React import
+import React from 'react';
+```
+
+---
+
+## Best Practices
+
+### Isolate Common Setup in `beforeEach`
+```typescript
+describe(SimulationManager.name, () => {
+  let manager: SimulationManager;
+  let mockPhysics: MockPhysicsService;
+
+  beforeEach(() => {
+    mockPhysics = {
+      step: vi.fn(),
+      getArmStates: vi.fn(() => []),
+    };
+    manager = new SimulationManager(mockPhysics);
+  });
+});
+```
+
+### Extract Helper Functions
+Place reusable mock creation at the bottom of test files:
+
+```typescript
+describe(RobotArm.name, () => {
+  beforeEach(() => {
+    const config = createMockArmConfig();
+    arm = new RobotArm(config);
+  });
+});
+
+// Helper functions at bottom
+function createMockArmConfig(): ArmConfig {
+  return { joints: 6, linkLengths: [0.3, 0.25, 0.2, 0.15, 0.1, 0.05] };
+}
+```
+
+### Use Safe URLs in Tests
+Always use `.test` TLD for fake URLs (RFC 2606):
+
+```typescript
+// Good: Safe URL that won't leak traffic
+const baseUrl = 'https://api.test';
+
+// Avoid: Could accidentally leak traffic
+const baseUrl = 'https://fake-api.com';
+```
+
+### Use `src/__mocks__` for Shared Mock Data
+Extract large or reusable mock data to `src/__mocks__/`:
+
+```typescript
+// In src/__mocks__/createMockArmState.ts
+export function createMockArmState(overrides?: Partial<ArmState>): ArmState {
+  return {
+    jointAngles: [0, 0, 0, 0, 0, 0],
+    endEffectorPosition: { x: 0, y: 0, z: 0 },
+    ...overrides,
+  };
+}
+
+// In test file
+import { createMockArmState } from '../__mocks__/createMockArmState';
+
+it('should update arm position', () => {
+  const armState = createMockArmState({ jointAngles: [0.1, 0.2, 0, 0, 0, 0] });
+  // ...
+});
+```

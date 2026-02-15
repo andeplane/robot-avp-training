@@ -1,0 +1,130 @@
+---
+alwaysApply: true
+---
+
+# Coding Patterns
+
+## Summary
+
+1. **Use dependency injection** with factory functions and partial overrides
+2. **Implement interface-based services** with explicit contracts
+3. **Separate concerns** -- keep business logic, state management, and rendering in distinct layers
+
+---
+
+## 1. Dependency Injection with Factory Functions
+
+### Problem
+Hard-coded dependencies make code difficult to test and tightly coupled to specific implementations.
+
+### Solution
+Use factory functions with partial dependency overrides.
+
+```typescript
+export type StartSessionDependencies = {
+  serviceFactory: () => SomeService;
+};
+
+const defaultDependencies: StartSessionDependencies = {
+  serviceFactory: () => new SomeServiceImplementation(),
+};
+
+export const startSession = async (
+  props: Props,
+  dependencyOverrides?: Partial<StartSessionDependencies>
+): Promise<void> => {
+  const dependencies = { ...defaultDependencies, ...dependencyOverrides };
+  const service = dependencies.serviceFactory();
+  // Use injected dependencies...
+};
+```
+
+This pattern works for any TypeScript code -- no framework required.
+
+---
+
+## 2. Interface-Based Services
+
+### Problem
+Services need to be flexible, testable, and follow consistent patterns.
+
+### Solution
+Define interfaces and implement them with classes.
+
+```typescript
+export interface DataService {
+  load(): Promise<Data>;
+  save(data: Data): Promise<void>;
+}
+
+export class ApiDataService implements DataService {
+  async load(): Promise<Data> {
+    // Implementation...
+  }
+
+  async save(data: Data): Promise<void> {
+    // Implementation...
+  }
+}
+```
+
+---
+
+## 3. Separation of Concerns
+
+### Problem
+Modules become complex when they directly manage state, handle business logic, and coordinate with multiple systems.
+
+### Solution
+Keep distinct responsibilities in separate layers:
+
+- **Services / managers** -- encapsulate business logic and external interactions
+- **State containers** -- manage application state (e.g. simulation state, physics world state)
+- **Rendering / view layer** -- only reads state and presents it (Three.js scene graph, UI overlays)
+
+```typescript
+// State container -- pure data + transitions
+export interface SimulationState {
+  robotArms: ArmState[];
+  isRunning: boolean;
+}
+
+// Manager -- business logic, coordinates services
+export class SimulationManager {
+  constructor(
+    private physics: PhysicsService,
+    private state: SimulationState
+  ) {}
+
+  step(dt: number): void {
+    this.physics.step(dt);
+    this.state.robotArms = this.physics.getArmStates();
+  }
+}
+
+// Renderer -- reads state, updates visuals
+export function updateScene(scene: THREE.Scene, state: SimulationState): void {
+  // Update Three.js objects from state...
+}
+```
+
+---
+
+## 4. Dependency Injection with React Context (when using React)
+
+If the project uses React components, inject dependencies via context:
+
+```typescript
+const defaultDependencies = {
+  useDataSource,
+  useAnalytics,
+};
+
+export type UseMyHookContextType = typeof defaultDependencies;
+export const UseMyHookContext = createContext<UseMyHookContextType>(defaultDependencies);
+
+export function useMyHook() {
+  const { useDataSource, useAnalytics } = useContext(UseMyHookContext);
+  // Use injected dependencies...
+}
+```
