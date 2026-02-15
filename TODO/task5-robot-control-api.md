@@ -2,7 +2,7 @@
 
 ## Summary
 
-Define the control API that bridges hand tracking input to robot arm movement. Includes the 7-DoF action space per arm, state interface, simulation step function, and episode reset.
+Define the control API in `visualizer/src/` that bridges hand tracking input to robot arm movement. Includes the 7-DoF action space per arm, state interface, simulation step function, and episode reset.
 
 ## Acceptance Criteria
 
@@ -98,6 +98,18 @@ function handPoseToAction(
     gripper: currentHandPose.pinchState.isPinching ? 0 : 1,
   };
 }
+```
+
+## File Structure
+
+```
+visualizer/src/
+├── simulation/
+│   ├── SimulationManager.ts  # Main simulation loop, stepSimulation()
+│   ├── EpisodeManager.ts     # resetEpisode(), episode config
+│   ├── HandToArmMapper.ts    # handPoseToAction() mapping
+│   ├── StateCapture.ts       # getCurrentState(), camera capture
+│   └── types.ts              # ArmAction, SimulationState, etc.
 ```
 
 ## References

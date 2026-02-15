@@ -2,7 +2,7 @@
 
 ## Summary
 
-Integrate Rapier.js (WASM-based physics) into the Three.js scene. Add rigid bodies to robot arms and manipulable objects. Configure joints for constrained objects (valves, handles) and implement grasp mechanics.
+Integrate Rapier.js (WASM-based physics) into the Three.js scene in `visualizer/src/`. Add rigid bodies to robot arms and manipulable objects. Configure joints for constrained objects (valves, handles) and implement grasp mechanics.
 
 ## Acceptance Criteria
 
@@ -77,6 +77,18 @@ world.removeImpulseJoint(joint, true);
 - Fixed timestep: `1/120` seconds (120 Hz)
 - Render at display refresh rate, step physics multiple times if needed
 - Rapier's `world.step()` called in the animation loop
+
+## File Structure
+
+```
+visualizer/src/
+├── physics/
+│   ├── PhysicsWorld.ts     # Rapier world wrapper
+│   ├── BodySync.ts         # Sync Rapier bodies <-> Three.js meshes
+│   ├── GraspManager.ts     # Grasp constraint creation/removal
+│   ├── CollisionGroups.ts  # Collision filtering setup
+│   └── types.ts            # Physics-related types
+```
 
 ## References
 

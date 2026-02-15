@@ -2,11 +2,12 @@
 
 ## Summary
 
-Initialize the Three.js + WebXR project with TypeScript, Vite, and Biome. Get a basic immersive-ar scene running in Apple Vision Pro's Safari browser.
+Initialize the Three.js + WebXR project with TypeScript, Vite, and Biome inside the `visualizer/` folder. Get a basic immersive-ar scene running in Apple Vision Pro's Safari browser.
 
 ## Acceptance Criteria
 
-- [ ] Vite project initialized with TypeScript
+- [ ] `visualizer/` folder created as project root for visualization code
+- [ ] Vite project initialized with TypeScript in `visualizer/`
 - [ ] Biome configured for linting and formatting
 - [ ] Three.js installed and rendering a basic scene
 - [ ] WebXR immersive-ar session starts with `hand-tracking` feature requested
@@ -15,7 +16,21 @@ Initialize the Three.js + WebXR project with TypeScript, Vite, and Biome. Get a 
 
 ## Technical Details
 
+### Project Structure
+```
+robot/
+├── visualizer/           # WebXR + Three.js visualization app
+│   ├── src/
+│   ├── package.json
+│   ├── vite.config.ts
+│   ├── tsconfig.json
+│   └── biome.json
+├── TODO/                 # Task documentation
+└── (future: training/, models/, etc.)
+```
+
 ### Project Setup
+- **Location**: `visualizer/` folder
 - **Bundler**: Vite with TypeScript
 - **Linter/Formatter**: Biome
 - **3D Engine**: Three.js (latest)

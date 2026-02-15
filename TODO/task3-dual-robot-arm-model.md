@@ -2,7 +2,7 @@
 
 ## Summary
 
-Create two robot arm models in Three.js. Each arm has a base, articulated segments, and a gripper end-effector. Arms are positioned on left and right sides of the workspace.
+Create two robot arm models in Three.js within `visualizer/src/`. Each arm has a base, articulated segments, and a gripper end-effector. Arms are positioned on left and right sides of the workspace.
 
 ## Acceptance Criteria
 
@@ -63,6 +63,17 @@ function setArmPose(arm: RobotArm, pose: ArmPose): void;
 - Right hand drives right arm
 - Pinch maps to gripper close
 - Hand wrist position/orientation maps to end-effector pose
+
+## File Structure
+
+```
+visualizer/src/
+├── robot/
+│   ├── RobotArm.ts         # RobotArm class with joints/segments
+│   ├── Gripper.ts          # Gripper end-effector with fingers
+│   ├── ArmFactory.ts       # Factory to create left/right arms
+│   └── types.ts            # RobotArm, Gripper, ArmPose interfaces
+```
 
 ## References
 

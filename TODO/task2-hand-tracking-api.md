@@ -2,7 +2,7 @@
 
 ## Summary
 
-Implement hand tracking using the WebXR Hand API. Track both left and right hands, extract joint positions, and detect pinch gestures for gripper control.
+Implement hand tracking using the WebXR Hand API in `visualizer/src/`. Track both left and right hands, extract joint positions, and detect pinch gestures for gripper control.
 
 ## Acceptance Criteria
 
@@ -74,6 +74,17 @@ interface JointData {
 - Small spheres at each joint position
 - Line segments connecting joints (skeleton wireframe)
 - Color change on pinch (e.g., green when pinching)
+
+## File Structure
+
+```
+visualizer/src/
+├── hand-tracking/
+│   ├── HandTracker.ts      # WebXR Hand API wrapper
+│   ├── PinchDetector.ts    # Pinch gesture detection
+│   ├── HandVisualizer.ts   # Debug skeleton rendering
+│   └── types.ts            # HandPose, JointData, PinchState
+```
 
 ## References
 
