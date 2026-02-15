@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Robot Visualizer</title>
+    <style>
+      body {
+        margin: 0;
+        overflow: hidden;
+        background: #000;
+      }
+      #app {
+        width: 100vw;
+        height: 100vh;
+      }
+      #enter-ar {
+        position: fixed;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        padding: 12px 24px;
+        font-size: 16px;
+        font-family: system-ui, sans-serif;
+        background: #2563eb;
+        color: #fff;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        z-index: 10;
+      }
+      #enter-ar:hover {
+        background: #1d4ed8;
+      }
+      #enter-ar:disabled {
+        background: #6b7280;
+        cursor: not-allowed;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app"></div>
+    <button id="enter-ar" type="button" disabled>Start AR</button>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
